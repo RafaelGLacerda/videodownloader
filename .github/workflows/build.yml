@@ -51,7 +51,6 @@ jobs:
           SDK="$HOME/android-sdk"
           mkdir -p "$SDK/cmdline-tools"
           cd "$SDK/cmdline-tools"
-          # baixa e corrige a estrutura -> .../cmdline-tools/latest/...
           wget -q https://dl.google.com/android/repository/commandlinetools-linux-10406996_latest.zip -O sdk.zip
           unzip -q sdk.zip
           mv cmdline-tools latest
@@ -63,15 +62,16 @@ jobs:
 
           yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$SDK" --licenses
           "$SDK/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$SDK" \
-            "platform-tools" "platforms;android-33" "build-tools;33.0.2"
+            "platform-tools" \
+            "platforms;android-33" \
+            "build-tools;33.0.2" \
+            "cmdline-tools;latest"
 
       - name: Ensure entrypoint matches your repo
         run: |
-          # Se houver app.py, usa como main.py (evita mismatch com video_downloader_app.py)
           if [ -f "app.py" ]; then
             sed -i 's/^main\.py.*/main.py = app.py/' buildozer.spec || true
           fi
-          echo "main.py line:"
           grep -E '^main\.py' buildozer.spec || true
 
       - name: Build APK (debug)
