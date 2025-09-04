@@ -1,0 +1,6 @@
+# Ignore Buildozer & Python cache
+.buildozer/
+bin/
+venv/
+__pycache__/
+*.pyc
