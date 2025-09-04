@@ -1,8 +1,8 @@
 name: Build APK
 
 on:
-  workflow_dispatch:   # permite rodar manualmente no GitHub
-  push:                # ou sempre que fizer push na branch main
+  workflow_dispatch:
+  push:
     branches:
       - main
 
@@ -19,7 +19,7 @@ jobs:
         with:
           python-version: "3.10"
 
-      - name: Install dependencies
+      - name: Install system dependencies
         run: |
           sudo apt update
           sudo apt install -y build-essential git zip unzip openjdk-17-jdk python3-pip python3-setuptools python3-wheel \
@@ -28,19 +28,23 @@ jobs:
           pip install --upgrade pip
           pip install buildozer cython
 
+      - name: Install Android SDK & Build Tools
+        run: |
+          mkdir -p $HOME/android-sdk
+          cd $HOME/android-sdk
+          wget https://dl.google.com/android/repository/commandlinetools-linux-10406996_latest.zip
+          unzip commandlinetools-linux-10406996_latest.zip -d cmdline-tools
+          yes | cmdline-tools/cmdline-tools/bin/sdkmanager --sdk_root=$HOME/android-sdk "platform-tools" "platforms;android-33" "build-tools;33.0.2"
+
+          echo "export ANDROIDSDK=$HOME/android-sdk" >> $GITHUB_ENV
+          echo "export PATH=$HOME/android-sdk/platform-tools:$PATH" >> $GITHUB_ENV
+
       - name: Build with Buildozer
         run: |
           buildozer -v android debug
 
       - name: Upload APK artifact
-        uses: actions/upload-artifact@v4   # ✅ atualizado
+        uses: actions/upload-artifact@v4
         with:
           name: video-downloader-apk
           path: bin/*.apk
-
-      - name: Upload Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: bin/*.apk
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
