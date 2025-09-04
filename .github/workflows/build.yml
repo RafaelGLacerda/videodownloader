@@ -59,6 +59,7 @@ jobs:
           echo "ANDROID_HOME=$SDK" >> $GITHUB_ENV
           echo "$SDK/cmdline-tools/latest/bin" >> $GITHUB_PATH
           echo "$SDK/platform-tools" >> $GITHUB_PATH
+          echo "$SDK/build-tools/33.0.2" >> $GITHUB_PATH
 
           yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$SDK" --licenses
           "$SDK/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$SDK" \
@@ -67,12 +68,12 @@ jobs:
             "build-tools;33.0.2" \
             "cmdline-tools;latest"
 
-      - name: Ensure entrypoint matches your repo
+      - name: Debug AIDL
         run: |
-          if [ -f "app.py" ]; then
-            sed -i 's/^main\.py.*/main.py = app.py/' buildozer.spec || true
-          fi
-          grep -E '^main\.py' buildozer.spec || true
+          echo "=== Checking AIDL ==="
+          find $HOME/android-sdk/build-tools -name aidl || true
+          which aidl || true
+          ls -l $HOME/android-sdk/build-tools/33.0.2 || true
 
       - name: Build APK (debug)
         env:
@@ -87,15 +88,3 @@ jobs:
         with:
           name: app-debug
           path: bin/*.apk
-
-      - name: Publish/Update Release "latest"
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: latest
-          name: "Latest APK"
-          files: bin/*.apk
-          prerelease: true
-          make_latest: true
-          fail_on_unmatched_files: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
