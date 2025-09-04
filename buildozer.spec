@@ -30,10 +30,10 @@ orientation = portrait
 # (bool) Indicate if the application should be fullscreen or not
 fullscreen = 0
 
+
 #
 # Android specific
 #
-
 [android]
 
 # (int) Android API to use
@@ -42,17 +42,15 @@ android.api = 33
 # (int) Minimum API your APK will support
 android.minapi = 21
 
-# (int) Android SDK version to use
-android.sdk = 33
-
-# (str) Android NDK version to use
-android.ndk = 25b
+# ⚠️ Importante: usar o SDK instalado no workflow
+sdk.dir = /home/runner/android-sdk
 
 # (bool) Use --private data storage (True) or not (False)
 android.private_storage = True
 
 # (list) Permissions
 android.permissions = INTERNET,WRITE_EXTERNAL_STORAGE,READ_EXTERNAL_STORAGE
+
 
 #
 # Buildozer itself

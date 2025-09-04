@@ -68,18 +68,16 @@ jobs:
             "build-tools;33.0.2" \
             "cmdline-tools;latest"
 
-      - name: Debug AIDL
+      - name: Debug SDK & AIDL
         run: |
-          echo "=== Checking AIDL ==="
-          find $HOME/android-sdk/build-tools -name aidl || true
+          echo "=== SDK ROOT: $ANDROID_SDK_ROOT ==="
+          find $ANDROID_SDK_ROOT/build-tools -name aidl || true
           which aidl || true
-          ls -l $HOME/android-sdk/build-tools/33.0.2 || true
 
-      - name: Build APK (debug)
+      - name: Build APK
         env:
           ANDROIDSDK: ${{ env.ANDROID_SDK_ROOT }}
-          ANDROIDNDK: ""   # deixa o p4a/Buildozer baixar o NDK suportado
-          GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4096m"
+          ANDROIDNDK: ""   # deixa o Buildozer baixar o NDK correto
         run: |
           buildozer -v android debug
 
