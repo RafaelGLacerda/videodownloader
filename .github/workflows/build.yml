@@ -52,23 +52,24 @@ jobs:
           mkdir -p "$SDK/cmdline-tools"
           cd "$SDK/cmdline-tools"
           wget -q https://dl.google.com/android/repository/commandlinetools-linux-10406996_latest.zip -O sdk.zip
-          unzip -q sdk.zip
+          unzip -q sdk.zip -d .
           rm sdk.zip
-          mkdir -p latest
-          mv cmdline-tools latest/
+          
+          # corrigir estrutura: move cmdline-tools extraído para "latest"
+          mv cmdline-tools latest
 
           echo "ANDROID_SDK_ROOT=$SDK" >> $GITHUB_ENV
           echo "ANDROID_HOME=$SDK" >> $GITHUB_ENV
           echo "$SDK/cmdline-tools/latest/bin" >> $GITHUB_PATH
           echo "$SDK/platform-tools" >> $GITHUB_PATH
-          echo "$SDK/build-tools/30.0.3" >> $GITHUB_PATH
+          echo "$SDK/build-tools/33.0.2" >> $GITHUB_PATH
 
           yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$SDK" --licenses
           "$SDK/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$SDK" \
             "platform-tools" \
             "platforms;android-33" \
-            "build-tools;30.0.3" \
-            "cmdline-tools;latest"
+            "build-tools;33.0.2"
+
 
 
       - name: Debug SDK & AIDL
