@@ -1,14 +1,14 @@
-name: Build APK
+name: Build Android APK
 
 on:
-  workflow_dispatch:
   push:
     branches:
       - main
+  pull_request:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repo
@@ -22,29 +22,46 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt update
-          sudo apt install -y build-essential git zip unzip openjdk-17-jdk python3-pip python3-setuptools python3-wheel \
-            autoconf automake libtool pkg-config zlib1g-dev libncurses5 libncurses5-dev libffi-dev libssl-dev \
-            libsqlite3-dev wget curl unzip
-          pip install --upgrade pip
-          pip install buildozer cython
+          sudo apt install -y \
+            openjdk-17-jdk \
+            python3-pip python3-setuptools python3-wheel python3-venv \
+            build-essential git zip unzip libffi-dev libssl-dev \
+            libsqlite3-dev zlib1g-dev autoconf automake cmake
 
       - name: Install Android SDK & Build Tools
         run: |
-          mkdir -p $HOME/android-sdk
-          cd $HOME/android-sdk
+          mkdir -p $HOME/android-sdk/cmdline-tools
+          cd $HOME/android-sdk/cmdline-tools
           wget https://dl.google.com/android/repository/commandlinetools-linux-10406996_latest.zip
-          unzip commandlinetools-linux-10406996_latest.zip -d cmdline-tools
-          yes | cmdline-tools/cmdline-tools/bin/sdkmanager --sdk_root=$HOME/android-sdk "platform-tools" "platforms;android-33" "build-tools;33.0.2"
+          unzip commandlinetools-linux-10406996_latest.zip -d latest
 
-          echo "export ANDROIDSDK=$HOME/android-sdk" >> $GITHUB_ENV
-          echo "export PATH=$HOME/android-sdk/platform-tools:$PATH" >> $GITHUB_ENV
+          yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=$HOME/android-sdk \
+            "platform-tools" "platforms;android-33" "build-tools;33.0.2"
 
-      - name: Build with Buildozer
+          echo "ANDROIDSDK=$HOME/android-sdk" >> $GITHUB_ENV
+          echo "$HOME/android-sdk/platform-tools" >> $GITHUB_PATH
+
+      - name: Set up Python virtualenv
         run: |
-          buildozer -v android debug
+          python3 -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install buildozer cython
 
-      - name: Upload APK artifact
+      - name: Build APK
+        run: |
+          source venv/bin/activate
+          buildozer android debug
+
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: video-downloader-apk
+          name: app-release
           path: bin/*.apk
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: bin/*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
