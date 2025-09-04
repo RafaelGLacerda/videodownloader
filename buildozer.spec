@@ -19,7 +19,7 @@ source.include_exts = py
 version = 0.1
 
 # (list) Application requirements
-requirements = python3,kivy,yt-dlp
+requirements = python3,kivy,yt-dlp,brotli,pycryptodomex,certifi
 
 # (str) Entry point of the application
 main.py = video_downloader_app.py

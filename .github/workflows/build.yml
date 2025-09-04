@@ -2,13 +2,12 @@ name: Build Android APK
 
 on:
   push:
-    branches:
-      - main
-  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout repo
@@ -19,6 +18,19 @@ jobs:
         with:
           python-version: "3.10"
 
+      # (Opcional) cache para acelerar builds seguintes
+      - name: Cache Gradle/Buildozer/SDK
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            ~/.buildozer
+            $HOME/android-sdk
+          key: ${{ runner.os }}-p4a-${{ hashFiles('buildozer.spec') }}
+          restore-keys: |
+            ${{ runner.os }}-p4a-
+
       - name: Install system dependencies
         run: |
           sudo apt update
@@ -26,41 +38,54 @@ jobs:
             openjdk-17-jdk \
             python3-pip python3-setuptools python3-wheel python3-venv \
             build-essential git zip unzip libffi-dev libssl-dev \
-            libsqlite3-dev zlib1g-dev autoconf automake cmake
+            libsqlite3-dev zlib1g-dev autoconf automake libtool pkg-config cmake
+          python -m pip install --upgrade pip
+          python -m pip install buildozer cython
 
       - name: Install Android SDK & Build Tools
         run: |
-          mkdir -p $HOME/android-sdk/cmdline-tools
-          cd $HOME/android-sdk/cmdline-tools
-          wget https://dl.google.com/android/repository/commandlinetools-linux-10406996_latest.zip
-          unzip commandlinetools-linux-10406996_latest.zip -d latest
+          SDK="$HOME/android-sdk"
+          mkdir -p "$SDK/cmdline-tools"
+          cd "$SDK/cmdline-tools"
+          # baixa os command line tools
+          wget -q https://dl.google.com/android/repository/commandlinetools-linux-10406996_latest.zip
+          unzip -q commandlinetools-linux-10406996_latest.zip
+          # corrige a estrutura exigida pelo sdkmanager
+          mv cmdline-tools latest
 
-          yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=$HOME/android-sdk \
+          yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$SDK" \
             "platform-tools" "platforms;android-33" "build-tools;33.0.2"
+          yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$SDK" --licenses
 
-          echo "ANDROIDSDK=$HOME/android-sdk" >> $GITHUB_ENV
-          echo "$HOME/android-sdk/platform-tools" >> $GITHUB_PATH
+          echo "ANDROIDSDK=$SDK" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=$SDK" >> $GITHUB_ENV
+          echo "$SDK/platform-tools" >> $GITHUB_PATH
 
-      - name: Set up Python virtualenv
+      - name: Ensure Buildozer entrypoint matches your repo
         run: |
-          python3 -m venv venv
-          source venv/bin/activate
-          pip install --upgrade pip
-          pip install buildozer cython
+          # Se existir app.py e NÃO existir video_downloader_app.py, corrige o buildozer.spec
+          if [ -f "app.py" ] && [ ! -f "video_downloader_app.py" ]; then
+            sed -i 's/^main\.py.*/main.py = app.py/' buildozer.spec || true
+          fi
+          echo "Using entrypoint:"
+          grep -E '^main\.py' buildozer.spec || echo "main.py not set"
 
-      - name: Build APK
+      - name: Build APK (debug)
+        env:
+          # ajuda o Gradle a ter memória suficiente
+          GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4096m"
         run: |
-          source venv/bin/activate
-          buildozer android debug
+          buildozer -v android debug
 
-      - name: Upload APK Artifact
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-release
+          name: app-debug
           path: bin/*.apk
 
-      - name: Upload to GitHub Release
+      - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
+        if: always()  # publica mesmo que um job anterior tenha falhado parcialmente
         with:
           files: bin/*.apk
         env:
